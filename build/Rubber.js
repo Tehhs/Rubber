@@ -22,7 +22,7 @@
                 })
                 if(isOpeningTag) return `div replaceId='${replacementId}'` 
                 if(isClosingTag) return `div`
-                if(isBoth) return `div replaceId='${replacementId}'` 
+                if(isBoth) return `<div replaceId='${replacementId}'/> </div>` 
 
                 return `<div replaceId='${replacementId}'></div>`
             }
@@ -42,9 +42,11 @@
           
         return (strings, ...params) => { 
             
-            let output = ""
-            for (const [i, str] of strings.entries()) {
+            let output = "" 
+            for (let [i, str] of strings.entries()) {
+
                 output += str
+
                 if (params[i] != undefined) {
                     const before = str?.trim();
                     const after = strings[i+1]?.trim();
@@ -52,9 +54,14 @@
                     const isClosingTag = before.slice(-2) == '</' && after.slice(0,1) == ">"
                     const isBoth = before.slice(-1) == '<' && after.slice(0,2) == "/>"
 
-                    console.log("call", params[i], isOpeningTag, "B", isClosingTag, isBoth)
+                    
                     const appendThis = _parseToString(params[i], isOpeningTag, isClosingTag, isBoth)
-                    console.log("APPEND THIS", appendThis) 
+                    if(isBoth == true) { 
+                        debugger
+                        output = output.slice(0, output.length-1);
+                        strings[i+1] = strings[i+1].slice(2)
+                    }
+                    
                     output += appendThis 
                 }
             }
@@ -65,17 +72,17 @@
             const temp_container = document.createElement("div")
             temp_container.innerHTML = output 
 
-            function _elementSwap(oldElement, newElement) { 
+            function _elementSwap(oldElement, newElement) {
                 const parent = oldElement.parentNode 
-                parent.replaceChild(newElement, oldElement)
-                for(const oldElementChild of oldElement.childNodes) { 
+                parent.appendChild(newElement)
+                for(const oldElementChild of Array.from(oldElement.childNodes) ) { 
                     newElement.appendChild(oldElementChild)
                 }
+                parent.removeChild(oldElement)
             }
 
             const childElements = Array.from(temp_container.getElementsByTagName("*"));
             console.log("starting with", temp_container)
-            debugger 
             for (const _node of childElements) {
                 if ((_node instanceof Element) == false) continue;
                 const replacement_id = _node.getAttribute("replaceId")
@@ -96,21 +103,34 @@
     const innerEle1 = document.createElement("div")
     innerEle1.style.backgroundColor = 'red' 
     innerEle1.innerText = "RED"
+    innerEle1.classList.add("innerEle1")
 
     const innerEle2 = document.createElement("div")
     innerEle2.style.backgroundColor = 'red' 
     innerEle2.innerText = "RED"
+    innerEle2.classList.add("innerEle2")
 
     const outerEle1 = document.createElement("div")
+    outerEle1.classList.add("outerEle1")
     innerEle1.style.backgroundColor = 'purple' 
 
     const retElement = EzHtml()`
         <div>
             ${innerEle1}
             <${outerEle1}>
-                <${innerEle2}>
+                <${innerEle2}/>
                 There should be some cool text in here.
             </${outerEle1}>
+        </div>
+    `
+    console.log(retElement) 
+    document.body.appendChild(retElement); 
+
+    
+    return 
+
+/*
+
             <input bind=${bind()}/>
             //bind() above just outputs a replaceid or something 
             similar and then script goies through all elements and if 
@@ -120,15 +140,7 @@
             <div onClick=${render}/>
             //render function takes THIS element parent, rerenders self and appends itself to parent?
             //might involve saving reference to THIS node so we dont repplace other things in parent 
-        </div>
-    `
-    console.log(retElement) 
-    document.body.appendChild(retElement); 
-
-    
-    return 
-
-
+*/
 
     let main = document.createElement("div")
     main.innerText = "This is some text"
